@@ -1,0 +1,8 @@
+[
+  { "id": "S1", "name": "대피소 A(초등학교)", "type": "school", "lat": 36.0678, "lon": 129.3789, "capacity": 600 },
+  { "id": "S2", "name": "대피소 B(체육관)",   "type": "gym",    "lat": 36.0601, "lon": 129.3705, "capacity": 1200 },
+  { "id": "S3", "name": "대피소 C(공원)",     "type": "park",   "lat": 36.0582, "lon": 129.3834, "capacity": 300 },
+  { "id": "S4", "name": "대피소 D(마을회관)", "type": "hall",   "lat": 36.0528, "lon": 129.3759, "capacity": 200 },
+  { "id": "S5", "name": "대피소 E(초등학교)", "type": "school", "lat": 36.0715, "lon": 129.3712, "capacity": 500 },
+  { "id": "S6", "name": "대피소 F(체육관)",   "type": "gym",    "lat": 36.0550, "lon": 129.3880, "capacity": 900 }
+]

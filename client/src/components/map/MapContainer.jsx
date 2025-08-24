@@ -5,14 +5,82 @@ import MenuPanel from '../panels/MenuPanel';
 import ListPanel from './ListPanel';
 import ShelterDetailView from './ShelterDetailView';
 import NavigationView from './NavigationView';
+import WildfireLayer from './WildfireLayer';
 import './MapContainer.css';
 import { getSheltersNearby } from '../../services/placesApi';
 import { API_BASE_URL } from '../../config/api';
+import { loadWildfire } from '../../utils/wildfireNdjson';
 
 const CATEGORIES = [
   { text: '대피소', icon: '/images/map/category/shelter.png' },
   { text: '산불 위험도', icon: '/images/map/category/warning.png' },
 ];
+
+// 테스트용 화재 마커 컴포넌트
+const TestFireMarkers = ({ map }) => {
+  React.useEffect(() => {
+    if (!map) return;
+    
+    console.log('🔥 [TestFireMarkers] 테스트 마커 생성 중...');
+    
+    // 포항 지역 테스트 좌표들
+    const testCoords = [
+      { lat: 36.076822856446775, lon: 129.34712215113535 },
+      { lat: 36.07862465824858, lon: 129.345985787499 },
+      { lat: 36.07907510869903, lon: 129.3454176056808 }
+    ];
+    
+    const markers = [];
+    
+    testCoords.forEach((coord, index) => {
+      const marker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(coord.lat, coord.lon),
+        map: map,
+        icon: {
+          content: `
+            <div style="
+              width: 24px;
+              height: 24px;
+              background: #ff3b30;
+              border-radius: 50%;
+              border: 2px solid #fff;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 14px;
+              animation: pulse 2s infinite;
+            ">🔥</div>
+            <style>
+              @keyframes pulse {
+                0% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.2); opacity: 0.7; }
+                100% { transform: scale(1); opacity: 1; }
+              }
+            </style>
+          `,
+          anchor: new window.naver.maps.Point(12, 12)
+        },
+        zIndex: 1000 + index
+      });
+      
+      markers.push(marker);
+      console.log(`🔥 [TestFireMarkers] 테스트 마커 ${index + 1} 생성: (${coord.lat}, ${coord.lon})`);
+    });
+    
+    console.log(`✅ [TestFireMarkers] ${markers.length}개 테스트 마커 생성 완료`);
+    
+    return () => {
+      markers.forEach(marker => {
+        if (marker && marker.setMap) {
+          marker.setMap(null);
+        }
+      });
+    };
+  }, [map]);
+  
+  return null;
+};
 
 export default function MapContainer({ onEditDestination, startLocation }) {
   const [activeFilters, setActiveFilters] = useState(['대피소']); // ✅ 초기값을 '대피소'로 설정
@@ -28,6 +96,11 @@ export default function MapContainer({ onEditDestination, startLocation }) {
   const [selectedShelter, setSelectedShelter] = useState(null); // 선택된 대피소
   const [showNavigationView, setShowNavigationView] = useState(false); // 네비게이션 화면 표시 상태
   const [currentLocation, setCurrentLocation] = useState(null); // 현재 위치
+  
+  // 산불 시각화 관련 상태
+  const [mapInstance, setMapInstance] = useState(null); // 지도 인스턴스
+  const [wildfireFrames, setWildfireFrames] = useState([]); // 산불 프레임 데이터
+  const [showWildfireLayer, setShowWildfireLayer] = useState(false); // 산불 레이어 표시 여부
 
   const mapRef = useRef(null);
   const panelRef = useRef(null); // ✅ 패널 ref 추가
@@ -71,6 +144,30 @@ export default function MapContainer({ onEditDestination, startLocation }) {
       longitude: home_lon
     });
     console.log('📍 고정 현재 위치 설정:', { latitude: home_lat, longitude: home_lon });
+  }, []);
+
+  // 산불 데이터 로딩
+  useEffect(() => {
+    const loadWildfireData = async () => {
+      try {
+        console.log('🔥 [MapContainer] 산불 데이터 로딩 시작');
+        const frames = await loadWildfire('/data/wildfire.ndjson');
+        console.log('🔥 [MapContainer] 로딩된 프레임 상세:', frames);
+        setWildfireFrames(frames);
+        console.log(`✅ [MapContainer] 산불 데이터 로딩 완료: ${frames.length}개 프레임`);
+        
+                 // 첫 번째 프레임 상세 정보
+         if (frames.length > 0) {
+           console.log('🔥 [MapContainer] 첫 번째 프레임:', frames[0]);
+           // 자동 활성화 제거됨 - 사용자가 "산불 위험도" 카테고리를 직접 선택해야 함
+         }
+      } catch (error) {
+        console.error('❌ [MapContainer] 산불 데이터 로딩 실패:', error);
+        // 에러가 발생해도 다른 기능에는 영향을 주지 않음
+      }
+    };
+
+    loadWildfireData();
   }, []);
 
   // ✅ 초기 로딩 시 대피소 데이터 자동 로드 (함수 정의 후에 배치)
@@ -303,60 +400,72 @@ export default function MapContainer({ onEditDestination, startLocation }) {
     }
   };
 
-  // "산불 위험도"
+  // "산불 위험도" - 산불 시각화 레이어 토글
   const loadRisk = async () => {
-    setIsLoading(true); setError(null);
+    setIsLoading(true); 
+    setError(null);
+    
     try {
-      // 고정 현재 위치 사용
-      const home_lat = 36.076548026645;
-      const home_lon = 129.34011228912;
-      const me = { latitude: home_lat, longitude: home_lon };
-
-      if (!API_BASE_URL) {
-        console.warn('API_BASE_URL이 설정되지 않음');
-        throw new Error('API 서버 연결 안됨');
+      console.log('🔥 [MapContainer] 산불 위험도 카테고리 선택');
+      
+      // 산불 시각화 레이어 활성화
+      console.log('🔥 [MapContainer] 산불 데이터 확인:', {
+        wildfireFramesLength: wildfireFrames.length,
+        mapInstance: !!mapInstance,
+        frames: wildfireFrames
+      });
+      
+      if (wildfireFrames.length > 0) {
+        setShowWildfireLayer(true);
+        console.log('✅ [MapContainer] 산불 시각화 레이어 활성화');
+        
+        // 패널에 산불 정보 표시
+        setListPanelData([{
+          id: 'wildfire-simulation',
+          name: '산불 번짐 시뮬레이션',
+          description: `${wildfireFrames.length}개 프레임, ${wildfireFrames[0]?.t || 0}-${wildfireFrames[wildfireFrames.length - 1]?.t || 0}분`,
+          type: 'wildfire',
+          metadata: {
+            frameCount: wildfireFrames.length,
+            ignitionPoint: wildfireFrames[0]?.ignition
+          }
+        }]);
+      } else {
+        console.warn('⚠️ [MapContainer] 산불 데이터가 로드되지 않음');
+        setError('산불 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
       }
 
-      const latest = await fetch(`${API_BASE_URL}api/hazards/latest`).then(r=>r.json());
-      if (latest?.geojson) mapRef.current?.drawHazardGeoJSON(latest.geojson);
-
-      const chk = await fetch(
-        `${API_BASE_URL}api/hazards/check?lat=${me.latitude}&lon=${me.longitude}`
-      ).then(r=>r.json());
-
-      const riskLabel = chk.inHazard
-        ? '높음(구역 내부)'
-        : (chk.distanceToEdgeM < 300 ? '중간(경계 인접)' : '낮음(구역 외부)');
-
-      const rows = [{
-        id: 'risk-current',
-        name: '현재 위치 위험도',
-        address: `경계까지 거리: ${chk.distanceToEdgeM ?? '-'}m`,
-        distance: riskLabel,
-      }];
-
-      // 안전 대피소 3곳 추천(구역 밖)
+      // 기존 위험도 API도 호출 (선택적)
       try {
-        const rec = await fetch(
-          `${API_BASE_URL}api/shelters/nearby?lat=${me.latitude}&lon=${me.longitude}&k=3&excludeHazard=true`
-        ).then(r=>r.json());
-        for (const s of (rec.items || [])) {
-          rows.push({
-            id: s.id || s.name,
-            name: `추천 대피소: ${s.name}`,
-            address: s.type ? `${s.type}` : '대피소',
-            distance: `${Math.round((s.distanceKm||0)*1000)}m`,
-            latitude: s.lat,
-            longitude: s.lon,
-          });
-        }
-      } catch {}
+        if (API_BASE_URL) {
+          const latest = await fetch(`${API_BASE_URL}api/hazards/latest`).then(r=>r.json());
+          if (latest?.geojson) mapRef.current?.drawHazardGeoJSON(latest.geojson);
 
-      setListPanelData(rows);
-      setMarkersCompat(
-        rows.filter(r=>r.latitude && r.longitude)
-            .map(r => ({ name:r.name, latitude:r.latitude, longitude:r.longitude }))
-      );
+          const home_lat = 36.076548026645;
+          const home_lon = 129.34011228912;
+          const chk = await fetch(
+            `${API_BASE_URL}api/hazards/check?lat=${home_lat}&lon=${home_lon}`
+          ).then(r=>r.json());
+
+          const riskLabel = chk.inHazard
+            ? '높음(구역 내부)'
+            : (chk.distanceToEdgeM < 300 ? '중간(경계 인접)' : '낮음(구역 외부)');
+
+          // 기존 산불 정보에 위험도 정보 추가
+          const currentData = [...listPanelData];
+          currentData.push({
+            id: 'risk-current',
+            name: '현재 위치 위험도',
+            address: `경계까지 거리: ${chk.distanceToEdgeM ?? '-'}m`,
+            distance: riskLabel,
+          });
+
+          setListPanelData(currentData);
+        }
+      } catch (apiError) {
+        console.warn('⚠️ [MapContainer] 기존 위험도 API 호출 실패:', apiError);
+        // API 오류는 무시하고 산불 시각화만 표시
+      }
     } catch (e) {
       setError(e.message || '위험도 로딩 실패');
       setListPanelData([]);
@@ -373,6 +482,12 @@ export default function MapContainer({ onEditDestination, startLocation }) {
       setShowListPanel(false);
       setListPanelData([]);
       setMarkersCompat([]);
+      
+      // 산불 레이어 비활성화
+      if (text === '산불 위험도') {
+        setShowWildfireLayer(false);
+      }
+      
       return;
     }
     setSelectedCategory(text);
@@ -642,7 +757,23 @@ export default function MapContainer({ onEditDestination, startLocation }) {
         <NaverMap
           ref={mapRef}
           startLocation={startLocation || { lat: 36.0645, lng: 129.3775 }}
+          onMapReady={setMapInstance}
         />
+        
+        {/* 산불 시각화 레이어 */}
+        {mapInstance && wildfireFrames.length > 0 && showWildfireLayer && (
+          <WildfireLayer 
+            map={mapInstance} 
+            frames={wildfireFrames} 
+          />
+        )}
+        
+        {/* 테스트용 즉시 마커 생성 */}
+        {mapInstance && wildfireFrames.length === 0 && (
+          <TestFireMarkers map={mapInstance} />
+        )}
+        
+        
       </div>
 
       {/* 현재 위치 버튼 */}

@@ -10,6 +10,7 @@ const NaverMap = memo(forwardRef(function NaverMap({
   startZoom = 14,
   trackMe = false,               // 현재 위치 실시간 추적 비활성화
   onReady,                       // map 준비 콜백
+  onMapReady,                    // 지도 인스턴스 콜백 (산불 레이어용)
 }, ref) {
   const mapDivRef = useRef(null);
   const mapRef = useRef(null);
@@ -42,6 +43,7 @@ const NaverMap = memo(forwardRef(function NaverMap({
         console.log('📍 지도 중심점을 고정 현재 위치로 설정:', { home_lat, home_lon });
 
         if (onReady) onReady(map);
+        if (onMapReady) onMapReady(map); // 산불 레이어용 콜백
       } catch (error) {
         console.warn('네이버 지도 SDK 로딩 실패:', error);
         // SDK 로딩 실패 시에도 기본 지도 div는 표시

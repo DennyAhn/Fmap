@@ -1,0 +1,79 @@
+[
+    {
+      "time_minutes": 0,
+      "total_burned_pixels": 1,
+      "burned_coordinates": [
+        { "row": 24, "col": 9, "lat": 36.076822856446775, "lon": 129.34712215113535 }
+      ],
+      "ignition_point": { "lat": 36.076822856446775, "lon": 129.34712215113535 },
+      "metadata": {
+        "dataset": "Korean40x40",
+        "simulation_number": 1,
+        "grid_size": "40x40",
+        "grid_file": "IgnitionPoint",
+        "data_source": "Cell2Fire simulation results"
+      }
+    },
+    {
+      "time_minutes": 30,
+      "total_burned_pixels": 2,
+      "burned_coordinates": [
+        { "row": 28, "col": 7, "lat": 36.07862465824858, "lon": 129.345985787499 },
+        { "row": 29, "col": 6, "lat": 36.07907510869903, "lon": 129.3454176056808 }
+      ],
+      "ignition_point": { "lat": 36.076822856446775, "lon": 129.34712215113535 },
+      "metadata": {
+        "dataset": "Korean40x40",
+        "simulation_number": 1,
+        "grid_size": "40x40",
+        "grid_file": "ForestGrid01.csv",
+        "data_source": "Cell2Fire simulation results"
+      }
+    },
+    {
+      "time_minutes": 60,
+      "total_burned_pixels": 5,
+      "burned_coordinates": [
+        { "row": 27, "col": 8, "lat": 36.07817420779813, "lon": 129.34655396931717 },
+        { "row": 28, "col": 7, "lat": 36.07862465824858, "lon": 129.345985787499 },
+        { "row": 28, "col": 8, "lat": 36.07862465824858, "lon": 129.34655396931717 },
+        { "row": 29, "col": 6, "lat": 36.07907510869903, "lon": 129.3454176056808 },
+        { "row": 29, "col": 7, "lat": 36.07907510869903, "lon": 129.345985787499 }
+      ],
+      "ignition_point": { "lat": 36.076822856446775, "lon": 129.34712215113535 },
+      "metadata": {
+        "dataset": "Korean40x40",
+        "simulation_number": 1,
+        "grid_size": "40x40",
+        "grid_file": "ForestGrid02.csv",
+        "data_source": "Cell2Fire simulation results"
+      }
+    },
+    {
+      "time_minutes": 90,
+      "total_burned_pixels": 12,
+      "burned_coordinates": [
+        { "row": 25, "col": 10, "lat": 36.077273306897226, "lon": 129.34769033295353 },
+        { "row": 26, "col": 9, "lat": 36.07772375734768, "lon": 129.34712215113535 },
+        { "row": 26, "col": 10, "lat": 36.07772375734768, "lon": 129.34769033295353 },
+        { "row": 27, "col": 8, "lat": 36.07817420779813, "lon": 129.34655396931717 },
+        { "row": 27, "col": 9, "lat": 36.07817420779813, "lon": 129.34712215113535 },
+        { "row": 28, "col": 6, "lat": 36.07862465824858, "lon": 129.3454176056808 },
+        { "row": 28, "col": 7, "lat": 36.07862465824858, "lon": 129.345985787499 },
+        { "row": 28, "col": 8, "lat": 36.07862465824858, "lon": 129.34655396931717 },
+        { "row": 28, "col": 9, "lat": 36.07862465824858, "lon": 129.34712215113535 },
+        { "row": 29, "col": 6, "lat": 36.07907510869903, "lon": 129.3454176056808 },
+        { "row": 29, "col": 7, "lat": 36.07907510869903, "lon": 129.345985787499 },
+        { "row": 29, "col": 8, "lat": 36.07907510869903, "lon": 129.34655396931717 }
+      ],
+      "ignition_point": { "lat": 36.076822856446775, "lon": 129.34712215113535 },
+      "metadata": {
+        "dataset": "Korean40x40",
+        "simulation_number": 1,
+        "grid_size": "40x40",
+        "grid_file": "ForestGrid03.csv",
+        "data_source": "Cell2Fire simulation results"
+      }
+    }
+  ]
+  

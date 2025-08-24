@@ -1,6 +1,7 @@
 // server/routes/directions.js
 const express = require('express');
 const router = express.Router();
+const haversine = require('haversine');
 
 // 티맵 API 기본 설정
 const TMAP_BASE_URL = 'https://apis.openapi.sk.com';
@@ -68,41 +69,24 @@ const validateCoordinates = (start, goal) => {
  * @returns {boolean} - 경로 근처에 있으면 true
  */
 function isNearRoute(facility, routeCoordinates, maxDistance = 100) {
+  const start = {
+    latitude: facility.latitude,
+    longitude: facility.longitude
+  };
+
   for (const coord of routeCoordinates) {
-    const distance = calculateDistance(
-      facility.latitude,
-      facility.longitude,
-      coord[1], // 위도
-      coord[0]  // 경도
-    );
+    const end = {
+      latitude: coord[1],
+      longitude: coord[0]
+    };
+
+    const distance = haversine(start, end, {unit: 'meter'});
+
     if (distance <= maxDistance) {
       return true;
     }
   }
   return false;
-}
-
-/**
- * 하버사인 공식을 이용한 두 지점간 거리 계산
- * @param {number} lat1 - 첫 번째 지점의 위도
- * @param {number} lon1 - 첫 번째 지점의 경도
- * @param {number} lat2 - 두 번째 지점의 위도
- * @param {number} lon2 - 두 번째 지점의 경도
- * @returns {number} - 거리 (미터)
- */
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371e3; // 지구 반지름 (미터)
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-          Math.cos(φ1) * Math.cos(φ2) *
-          Math.sin(Δλ/2) * Math.sin(Δλ/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-  return R * c;
 }
 
 /**
@@ -349,7 +333,8 @@ function processPedestrianRoute(tmapData) {
       throw new Error('티맵 API 응답 형식이 올바르지 않습니다');
     }
 
-  const features = tmapData.features || [];
+    // 경로 feature들을 index 기준으로 정렬하여 순서를 보장합니다.
+    const features = (tmapData.features || []).sort((a, b) => (a.properties.index || 0) - (b.properties.index || 0));
     
     if (features.length === 0) {
       console.warn('⚠️ [Server] 경로 features가 비어있음');
@@ -483,7 +468,8 @@ function processDrivingRoute(tmapData) {
       throw new Error('티맵 API 응답 형식이 올바르지 않습니다');
     }
 
-  const features = tmapData.features || [];
+    // 경로 feature들을 index 기준으로 정렬하여 순서를 보장합니다.
+    const features = (tmapData.features || []).sort((a, b) => (a.properties.index || 0) - (b.properties.index || 0));
     
     if (features.length === 0) {
       console.warn('⚠️ [Server] 경로 features가 비어있음');

@@ -15,6 +15,75 @@ const NavigationView = ({
   const mapRef = useRef(null);
   const navigationMapInstance = useRef(null);
 
+  // 경로 캐싱 및 지도 요소 관리
+  const routeCache = useRef(new Map());
+  const mapElements = useRef({
+    startMarker: null,
+    endMarker: null,
+    pathInstance: null,
+    pathBorderInstance: null
+  });
+  const currentRouteKey = useRef(null);
+
+  // 경로 캐싱 유틸리티 함수들
+  const generateRouteKey = (startCoords, goalCoords) => {
+    const startStr = `${startCoords.latitude || startCoords.lat},${startCoords.longitude || startCoords.lng}`;
+    const goalStr = `${goalCoords.latitude},${goalCoords.longitude}`;
+    return `${startStr}->${goalStr}`;
+  };
+
+  const getCachedRoute = (routeKey, routeType) => {
+    const cacheKey = `${routeKey}_${routeType}`;
+    return routeCache.current.get(cacheKey);
+  };
+
+  const setCachedRoute = (routeKey, routeType, data) => {
+    const cacheKey = `${routeKey}_${routeType}`;
+    routeCache.current.set(cacheKey, data);
+  };
+
+  // 지도 요소 정리 함수
+  const clearMapElements = () => {
+    Object.entries(mapElements.current).forEach(([key, element]) => {
+      if (element) {
+        if (element.setMap) {
+          element.setMap(null);
+        }
+        mapElements.current[key] = null;
+      }
+    });
+  };
+
+  // 마커 크기 계산 함수
+  const calculateMarkerSize = (zoomLevel) => {
+    const baseSize = 32;
+    const scaleFactor = Math.pow(1.2, zoomLevel - 14);
+    return Math.max(16, Math.min(48, baseSize * scaleFactor));
+  };
+
+  // 마커 업데이트 함수
+  const updateMarkers = () => {
+    if (!navigationMapInstance.current) return;
+    
+    const zoom = navigationMapInstance.current.getZoom();
+    const newSize = calculateMarkerSize(zoom);
+    const half = newSize / 2;
+
+    [mapElements.current.startMarker, mapElements.current.endMarker].forEach(marker => {
+      if (marker) {
+        const currentIcon = marker.getIcon();
+        if (currentIcon && currentIcon.url) {
+          marker.setIcon({
+            ...currentIcon,
+            size: new window.naver.maps.Size(newSize, newSize),
+            scaledSize: new window.naver.maps.Size(newSize, newSize),
+            anchor: new window.naver.maps.Point(half, half)
+          });
+        }
+      }
+    });
+  };
+
   // 경로 데이터 로드
   useEffect(() => {
     if (shelter && startLocation) {
@@ -29,6 +98,7 @@ const NavigationView = ({
     // 기존 지도 인스턴스 정리
     if (navigationMapInstance.current) {
       try {
+        clearMapElements();
         navigationMapInstance.current.destroy();
       } catch (e) {
         console.warn('지도 인스턴스 정리 중 오류:', e);
@@ -54,6 +124,30 @@ const NavigationView = ({
     return () => clearTimeout(timer);
   }, [routeData, selectedRouteType]);
 
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      // 지도 요소 정리
+      clearMapElements();
+      
+      // 지도 인스턴스 정리
+      if (navigationMapInstance.current) {
+        try {
+          navigationMapInstance.current.destroy();
+        } catch (e) {
+          console.warn('지도 인스턴스 정리 중 오류:', e);
+        }
+        navigationMapInstance.current = null;
+      }
+      
+      // 캐시 정리 (메모리 누수 방지)
+      routeCache.current.clear();
+      currentRouteKey.current = null;
+      
+      console.log('🧹 NavigationView 정리 완료');
+    };
+  }, []);
+
   const loadRoute = async (routeType) => {
     if (!shelter || !startLocation) return;
     
@@ -61,50 +155,99 @@ const NavigationView = ({
     setError(null);
     
     try {
-      console.log('🗺️ 경로 로딩 시작:', {
-        type: routeType,
-        from: startLocation,
-        to: { lat: shelter.latitude, lng: shelter.longitude },
-        apiBaseUrl: API_BASE_URL
-      });
-
-      // API_BASE_URL이 없거나 서버가 없을 경우 더미 데이터 사용
-      if (!API_BASE_URL) {
-        console.warn('API_BASE_URL이 설정되지 않음, 더미 데이터 사용');
-        throw new Error('API 서버 연결 안됨');
-      }
-
-      // 타임아웃이 있는 fetch 요청
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+      console.log(`🗺️ [${routeType}] 경로 그리기 시작`);
       
-      const response = await fetch(`${API_BASE_URL}api/directions/${routeType}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          startLat: startLocation.latitude || startLocation.lat,
-          startLng: startLocation.longitude || startLocation.lng,
-          endLat: shelter.latitude,
-          endLng: shelter.longitude
-        }),
-        signal: controller.signal
-      });
+      // 캐시 확인
+      const routeKey = generateRouteKey(startLocation, shelter);
+      const cachedData = getCachedRoute(routeKey, routeType);
       
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`경로 조회 실패: ${response.status}`);
-      }
-
-      const result = await response.json();
+      let serverResponse;
       
-      if (result.success) {
-        setRouteData(result.data);
-        console.log('✅ 경로 데이터 로드 완료:', result.data.summary);
+      if (cachedData) {
+        console.log(`💾 [${routeType}] 캐시된 데이터 사용 (${routeKey}) - 서버 요청 없음`);
+        serverResponse = cachedData;
+        
+        // 캐시 사용 시에만 기존 요소 정리 (시각적 전환을 위해)
+        clearMapElements();
       } else {
-        throw new Error(result.message || '경로 조회 실패');
+        console.log(`🌐 [${routeType}] 서버에서 새 데이터 요청`);
+        
+        // 새 요청 시에만 기존 요소 정리
+        clearMapElements();
+        
+        // API_BASE_URL이 없거나 서버가 없을 경우 더미 데이터 사용
+        if (!API_BASE_URL) {
+          console.warn('API_BASE_URL이 설정되지 않음, 더미 데이터 사용');
+          throw new Error('API 서버 연결 안됨');
+        }
+
+        // 타임아웃이 있는 fetch 요청
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+        
+        console.log(`🌐 [${routeType}] API 요청:`, {
+          endpoint: `api/directions/${routeType}`,
+          start: `${startLocation.latitude || startLocation.lat},${startLocation.longitude || startLocation.lng}`,
+          goal: `${shelter.latitude},${shelter.longitude}`
+        });
+
+        const response = await fetch(`${API_BASE_URL}api/directions/${routeType}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            startLat: startLocation.latitude || startLocation.lat,
+            startLng: startLocation.longitude || startLocation.lng,
+            endLat: shelter.latitude,
+            endLng: shelter.longitude
+          }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || '경로 검색 실패');
+        }
+
+        serverResponse = await response.json();
+        
+        // 📦 캐시에 저장
+        setCachedRoute(routeKey, routeType, serverResponse);
+        currentRouteKey.current = routeKey;
+      }
+      
+      console.log(`📊 [${routeType}] 응답 데이터 처리:`, {
+        success: serverResponse.success,
+        coordinates: serverResponse.data?.coordinates?.length || 0,
+        summary: serverResponse.data?.summary || {}
+      });
+
+      if (serverResponse.success && serverResponse.data) {
+        // directions.js API 응답 형식에 맞게 데이터 처리
+        const routeData = {
+          summary: {
+            distance: serverResponse.data.summary?.distance || 0,
+            duration: serverResponse.data.summary?.duration || 0,
+            distanceText: serverResponse.data.summary?.distanceText || '0m',
+            durationText: serverResponse.data.summary?.durationText || '0분'
+          },
+          steps: serverResponse.data.steps || [],
+          coordinates: serverResponse.data.coordinates || [],
+          bounds: serverResponse.data.bounds || null
+        };
+        
+        setRouteData(routeData);
+        console.log('✅ 경로 데이터 로드 완료:', {
+          distance: routeData.summary.distanceText,
+          duration: routeData.summary.durationText,
+          coordinatesCount: routeData.coordinates.length,
+          stepsCount: routeData.steps.length
+        });
+      } else {
+        throw new Error(serverResponse.error || serverResponse.message || '경로 조회 실패');
       }
 
     } catch (err) {
@@ -113,14 +256,22 @@ const NavigationView = ({
       let errorMessage = err.message;
       if (err.name === 'AbortError') {
         errorMessage = '경로 조회 시간이 초과되었습니다';
+      } else if (err.message.includes('Failed to fetch')) {
+        errorMessage = '서버에 연결할 수 없습니다';
+      } else if (err.message.includes('NetworkError')) {
+        errorMessage = '네트워크 오류가 발생했습니다';
       }
-      
-      setError(`${errorMessage} (더미 경로 사용)`);
       
       // 오류 시 더미 데이터 사용
       const dummyData = getDummyRouteData(routeType);
-      setRouteData(dummyData);
-      console.log('🔄 더미 데이터로 대체:', dummyData?.summary);
+      if (dummyData) {
+        setError(`${errorMessage} (예상 경로 표시)`);
+        setRouteData(dummyData);
+        console.log('🔄 더미 데이터로 대체:', dummyData.summary);
+      } else {
+        setError(`${errorMessage} - 경로를 표시할 수 없습니다`);
+        setRouteData(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -152,8 +303,12 @@ const NavigationView = ({
 
       navigationMapInstance.current = new window.naver.maps.Map(mapContainer, mapOptions);
 
-      // 출발지 마커 (현재 위치)
-      new window.naver.maps.Marker({
+      // 마커 크기 계산
+      const initialSize = calculateMarkerSize(navigationMapInstance.current.getZoom());
+      const initialHalf = initialSize / 2;
+
+      // 출발지 마커 (개선된 스타일)
+      mapElements.current.startMarker = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(
           startLocation.latitude || startLocation.lat, 
           startLocation.longitude || startLocation.lng
@@ -162,93 +317,96 @@ const NavigationView = ({
         icon: {
           content: `
             <div style="
-              width: 24px;
-              height: 24px;
+              width: ${initialSize}px;
+              height: ${initialSize}px;
               background: #4CAF50;
               border-radius: 50%;
               border: 3px solid #fff;
-              box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+              box-shadow: 0 4px 8px rgba(0,0,0,0.3);
               display: flex;
               align-items: center;
               justify-content: center;
-              font-size: 12px;
+              font-size: ${Math.max(12, initialSize * 0.4)}px;
               color: white;
               font-weight: bold;
             ">📍</div>
           `,
-          anchor: new window.naver.maps.Point(12, 12)
-        }
+          anchor: new window.naver.maps.Point(initialHalf, initialHalf)
+        },
+        zIndex: 50
       });
 
-      // 도착지 마커 (대피소)
-      new window.naver.maps.Marker({
+      // 도착지 마커 (개선된 스타일)
+      mapElements.current.endMarker = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(shelter.latitude, shelter.longitude),
         map: navigationMapInstance.current,
         icon: {
           content: `
             <div style="
-              width: 32px;
-              height: 32px;
+              width: ${initialSize}px;
+              height: ${initialSize}px;
               background: #FF5722;
               border-radius: 50%;
               border: 3px solid #fff;
               display: flex;
               align-items: center;
               justify-content: center;
-              font-size: 16px;
+              font-size: ${Math.max(14, initialSize * 0.5)}px;
               color: white;
               font-weight: bold;
-              box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+              box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             ">🏠</div>
           `,
-          anchor: new window.naver.maps.Point(16, 16)
-        }
+          anchor: new window.naver.maps.Point(initialHalf, initialHalf)
+        },
+        zIndex: 50
       });
 
-      // 경로 라인 그리기
-      if (routeData.coordinates && routeData.coordinates.length > 0) {
-        console.log('🗺️ 경로 좌표 개수:', routeData.coordinates.length);
-        
-        const routePath = routeData.coordinates.map(coord => 
-          new window.naver.maps.LatLng(coord[1], coord[0])
-        );
+      // 줌 변경 시 마커 크기 업데이트
+      window.naver.maps.Event.addListener(navigationMapInstance.current, 'zoom_changed', updateMarkers);
 
-        // 경로 타입에 따른 스타일 설정
-        const routeStyle = selectedRouteType === 'walk' ? {
-          strokeColor: '#4CAF50',      // 도보: 녹색
-          strokeWeight: 6,             // 도보: 더 얇은 라인
-          strokeOpacity: 0.8,
-          strokeStyle: 'solid'
-        } : {
-          strokeColor: '#2196F3',      // 자동차: 파란색  
-          strokeWeight: 10,            // 자동차: 더 두꺼운 라인
-          strokeOpacity: 0.9,
-          strokeStyle: 'solid'
+      // 경로 라인 그리기 (개선된 스타일)
+      if (routeData.coordinates && routeData.coordinates.length > 0) {
+        console.log(`🎯 [${selectedRouteType}] 새 경로 생성 시작`);
+        
+        const pathCoordinates = routeData.coordinates;
+        const path = pathCoordinates.map(coord => new window.naver.maps.LatLng(coord[1], coord[0]));
+
+        // 모든 경로 유형에 대해 동일한 색상 사용 (지도에서 잘 보이는 색상)
+        const routeColor = {
+          border: '#FFFFFF',     // 테두리 색상 (흰색)
+          main: '#4B89DC'        // 메인 경로 색상 (네이버 지도 스타일 파란색)
         };
 
-        const routeLine = new window.naver.maps.Polyline({
+        // 경로에 테두리 주기 - 더 두껍고 불투명하게 설정
+        mapElements.current.pathBorderInstance = new window.naver.maps.Polyline({
           map: navigationMapInstance.current,
-          path: routePath,
-          ...routeStyle
-        });
-
-        // 경로 라인에 그림자 효과 (경로 타입에 따라 다른 두께)
-        const shadowWeight = selectedRouteType === 'walk' ? 10 : 14;
-        new window.naver.maps.Polyline({
-          map: navigationMapInstance.current,
-          path: routePath,
-          strokeColor: '#000000',
-          strokeWeight: shadowWeight,
-          strokeOpacity: 0.2,
+          path: path,
+          strokeColor: routeColor.border,
+          strokeWeight: 12,       // 테두리를 더 두껍게
+          strokeOpacity: 1,       // 완전 불투명하게
+          strokeLineCap: 'round',
+          strokeLineJoin: 'round',
           zIndex: 1
         });
 
-        // 메인 경로 라인을 위로 올리기
-        routeLine.setZIndex(2);
+        // 메인 경로 그리기 - 더 선명하고 생생한 색상으로
+        mapElements.current.pathInstance = new window.naver.maps.Polyline({
+          map: navigationMapInstance.current,
+          path: path,
+          strokeColor: routeColor.main,
+          strokeWeight: 6,        // 약간 더 두껍게
+          strokeOpacity: 1,       // 완전 불투명하게
+          strokeLineCap: 'round',
+          strokeLineJoin: 'round',
+          zIndex: 2
+        });
 
-        // 지도 범위 맞추기 (여백 추가)
+        // 🗺️ 지도 뷰포트를 경로에 맞게 조정
         const bounds = new window.naver.maps.LatLngBounds();
-        routePath.forEach(point => bounds.extend(point));
+        pathCoordinates.forEach(coord => {
+          bounds.extend(new window.naver.maps.LatLng(coord[1], coord[0]));
+        });
         
         // 충분한 여백을 두고 경로 전체가 보이도록 설정
         navigationMapInstance.current.fitBounds(bounds, { 
@@ -272,155 +430,139 @@ const NavigationView = ({
   const getDummyRouteData = (routeType) => {
     if (!shelter || !startLocation) return null;
     
-    // 출발지와 도착지 좌표
-    const startLat = startLocation.latitude || startLocation.lat;
-    const startLng = startLocation.longitude || startLocation.lng;
-    const endLat = shelter.latitude;
-    const endLng = shelter.longitude;
-    
-    // 하버사인 공식으로 직선 거리 계산
-    const R = 6371000; // 지구 반지름 (미터)
-    const dLat = (endLat - startLat) * Math.PI / 180;
-    const dLng = (endLng - startLng) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const straightDistance = R * c; // 미터 단위
-    
-    // 도로 기반 경로 생성 (직선이 아닌 도로를 따라가는 경로)
-    const coordinates = generateRoadBasedRoute(startLat, startLng, endLat, endLng, routeType);
-    
-    // 실제 도로 거리 계산 (직선 거리 * 도로 계수)
-    const roadFactor = routeType === 'walk' ? 1.4 : 1.3; // 도보는 더 구불구불, 자동차는 상대적으로 직선
-    const roadDistance = straightDistance * roadFactor;
-    
-    // 속도 및 시간 계산
-    const walkSpeed = 70; // m/분 (약 4.2km/h)
-    const driveSpeed = 400; // m/분 (약 24km/h, 도심 기준)
-    const duration = Math.round(roadDistance / (routeType === 'walk' ? walkSpeed : driveSpeed));
-    
-    // 경로 단계별 안내 생성
-    const steps = generateRouteSteps(coordinates, routeType, shelter.name);
+    try {
+      // 출발지와 도착지 좌표
+      const startLat = startLocation.latitude || startLocation.lat;
+      const startLng = startLocation.longitude || startLocation.lng;
+      const endLat = shelter.latitude;
+      const endLng = shelter.longitude;
+      
+      // 좌표 유효성 검사
+      if (!Number.isFinite(startLat) || !Number.isFinite(startLng) || 
+          !Number.isFinite(endLat) || !Number.isFinite(endLng)) {
+        console.warn('⚠️ 유효하지 않은 좌표:', { startLat, startLng, endLat, endLng });
+        return null;
+      }
+      
+      // 하버사인 공식으로 직선 거리 계산
+      const R = 6371000; // 지구 반지름 (미터)
+      const dLat = (endLat - startLat) * Math.PI / 180;
+      const dLng = (endLng - startLng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const straightDistance = R * c; // 미터 단위
+      
+      // directions.js와 동일한 형식의 간단한 경로 생성
+      const coordinates = generateSimpleRoute(startLat, startLng, endLat, endLng);
+      
+      // 실제 도로 거리 계산
+      const roadFactor = routeType === 'walk' ? 1.3 : 1.2;
+      const roadDistance = straightDistance * roadFactor;
+      
+      // 속도 및 시간 계산
+      const walkSpeed = 70; // m/분
+      const driveSpeed = 400; // m/분
+      const duration = Math.round(roadDistance / (routeType === 'walk' ? walkSpeed : driveSpeed));
+      
+      // directions.js와 동일한 단계별 안내
+      const steps = [
+        {
+          step: 0,
+          instruction: '출발지',
+          distance: 0,
+          duration: 0,
+          coordinate: [startLng, startLat],
+          type: 'S'
+        },
+        {
+          step: 1,
+          instruction: '목적지',
+          distance: Math.round(roadDistance),
+          duration: duration * 60,
+          coordinate: [endLng, endLat],
+          type: 'E'
+        }
+      ];
     
     return {
       summary: {
-        distance: Math.round(roadDistance),
-        duration: duration,
-        distanceText: roadDistance >= 1000 ? `${(roadDistance/1000).toFixed(1)}km` : `${Math.round(roadDistance)}m`,
-        durationText: duration >= 60 ? `${Math.floor(duration/60)}시간 ${duration%60}분` : `${duration}분`
-      },
-      steps: steps,
-      coordinates: coordinates
-    };
+          distance: Math.round(roadDistance),
+          duration: duration,
+          distanceText: roadDistance >= 1000 ? `${(roadDistance/1000).toFixed(1)}km` : `${Math.round(roadDistance)}m`,
+          durationText: duration >= 60 ? `${Math.floor(duration/60)}시간 ${duration%60}분` : `${duration}분`
+        },
+        steps: steps,
+        coordinates: coordinates,
+        bounds: calculateSimpleBounds(coordinates)
+      };
+    } catch (error) {
+      console.error('❌ 더미 데이터 생성 실패:', error);
+      return null;
+    }
   };
 
-  // 도로 기반 경로 생성 함수
-  const generateRoadBasedRoute = (startLat, startLng, endLat, endLng, routeType) => {
+  // 차도를 따르는 경로 생성 함수 (directions.js와 호환)
+  const generateSimpleRoute = (startLat, startLng, endLat, endLng) => {
     const coordinates = [];
+    const numPoints = 20; // 더 많은 점으로 자연스러운 곡선
     
-    // 시작점
-    coordinates.push([startLng, startLat]);
+    // 차도를 시뮬레이션하기 위한 중간 경유점들
+    const midLat1 = startLat + (endLat - startLat) * 0.3 + (Math.random() - 0.5) * 0.001;
+    const midLng1 = startLng + (endLng - startLng) * 0.3 + (Math.random() - 0.5) * 0.001;
     
-    // 중간 경유점들을 도로 패턴으로 생성
-    const numSegments = routeType === 'walk' ? 15 : 12; // 도보는 더 세밀한 경로
+    const midLat2 = startLat + (endLat - startLat) * 0.7 + (Math.random() - 0.5) * 0.001;
+    const midLng2 = startLng + (endLng - startLng) * 0.7 + (Math.random() - 0.5) * 0.001;
     
-    for (let i = 1; i < numSegments; i++) {
-      const progress = i / numSegments;
+    // 베지어 곡선 방식으로 자연스러운 도로 형태 생성
+    for (let i = 0; i <= numPoints; i++) {
+      const t = i / numPoints;
       
-      // 기본 직선 보간
-      let lat = startLat + (endLat - startLat) * progress;
-      let lng = startLng + (endLng - startLng) * progress;
+      // 3차 베지어 곡선 (시작점, 중간점1, 중간점2, 끝점)
+      const lat = Math.pow(1-t, 3) * startLat + 
+                  3 * Math.pow(1-t, 2) * t * midLat1 + 
+                  3 * (1-t) * Math.pow(t, 2) * midLat2 + 
+                  Math.pow(t, 3) * endLat;
+                  
+      const lng = Math.pow(1-t, 3) * startLng + 
+                  3 * Math.pow(1-t, 2) * t * midLng1 + 
+                  3 * (1-t) * Math.pow(t, 2) * midLng2 + 
+                  Math.pow(t, 3) * endLng;
       
-      // 도로 패턴 시뮬레이션 (격자형 도로망 고려)
-      const gridSize = 0.002; // 약 200m 간격의 격자
-      
-      if (routeType === 'walk') {
-        // 도보: 더 구불구불한 경로 (보도, 골목길 등)
-        const walkOffset = Math.sin(progress * Math.PI * 4) * 0.001;
-        const walkOffset2 = Math.cos(progress * Math.PI * 6) * 0.0008;
-        
-        // 격자 도로에 맞춤
-        lat = Math.round(lat / gridSize) * gridSize + walkOffset;
-        lng = Math.round(lng / gridSize) * gridSize + walkOffset2;
-        
-      } else {
-        // 자동차: 주요 도로 우선 (더 직선적)
-        const driveOffset = Math.sin(progress * Math.PI * 2) * 0.0005;
-        
-        // 더 큰 격자 (주요 도로)
-        const mainRoadGrid = gridSize * 2;
-        lat = Math.round(lat / mainRoadGrid) * mainRoadGrid + driveOffset;
-        lng = Math.round(lng / mainRoadGrid) * mainRoadGrid;
-      }
-      
-      coordinates.push([lng, lat]);
+      coordinates.push([lng, lat]); // [경도, 위도] 순서
     }
-    
-    // 도착점
-    coordinates.push([endLng, endLat]);
     
     return coordinates;
   };
 
-  // 경로 단계별 안내 생성 함수
-  const generateRouteSteps = (coordinates, routeType, shelterName) => {
-    const steps = [];
-    const totalCoords = coordinates.length;
+  // 간단한 경계 계산 함수
+  const calculateSimpleBounds = (coordinates) => {
+    if (!coordinates || coordinates.length === 0) return null;
     
-    // 시작점
-    steps.push({
-      step: 0,
-      instruction: routeType === 'walk' ? "도보로 출발합니다" : "차량으로 출발합니다",
-      distance: 0,
-      duration: 0,
-      coordinate: coordinates[0],
-      type: 'start'
-    });
-    
-    // 중간 안내점들
-    const midPoints = routeType === 'walk' ? [0.3, 0.6] : [0.4]; // 도보는 더 자주 안내
-    
-    midPoints.forEach((ratio, index) => {
-      const coordIndex = Math.floor(totalCoords * ratio);
-      const coord = coordinates[coordIndex];
+    try {
+      let minLat = coordinates[0][1];
+      let maxLat = coordinates[0][1];
+      let minLng = coordinates[0][0];
+      let maxLng = coordinates[0][0];
       
-      if (routeType === 'walk') {
-        const walkInstructions = [
-          "직진하여 계속 이동하세요",
-          "보도를 따라 계속 걸어가세요"
-        ];
-        steps.push({
-          step: index + 1,
-          instruction: walkInstructions[index] || "목적지 방향으로 계속 이동하세요",
-          distance: 0,
-          duration: 0,
-          coordinate: coord,
-          type: 'waypoint'
-        });
-      } else {
-        steps.push({
-          step: index + 1,
-          instruction: "주요 도로를 따라 계속 진행하세요",
-          distance: 0,
-          duration: 0,
-          coordinate: coord,
-          type: 'waypoint'
-        });
-      }
-    });
-    
-    // 도착점
-    steps.push({
-      step: steps.length,
-      instruction: `${shelterName}에 도착했습니다`,
-      distance: 0,
-      duration: 0,
-      coordinate: coordinates[coordinates.length - 1],
-      type: 'end'
-    });
-    
-    return steps;
+      coordinates.forEach(([lng, lat]) => {
+        if (Number.isFinite(lng) && Number.isFinite(lat)) {
+          minLat = Math.min(minLat, lat);
+          maxLat = Math.max(maxLat, lat);
+          minLng = Math.min(minLng, lng);
+          maxLng = Math.max(maxLng, lng);
+        }
+      });
+      
+      return {
+        southwest: [minLng, minLat],
+        northeast: [maxLng, maxLat]
+      };
+    } catch (error) {
+      console.error('❌ 경계 계산 실패:', error);
+      return null;
+    }
   };
 
   const handleRouteTypeChange = (type) => {
@@ -469,12 +611,6 @@ const NavigationView = ({
               <div>경로 계산 중...</div>
             </div>
           )}
-          {error && (
-            <div className="map-error">
-              <div>⚠️ 경로 계산 오류</div>
-              <div className="error-text">{error}</div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -492,7 +628,7 @@ const NavigationView = ({
               <div className="route-text">
                 {routeData && selectedRouteType === 'walk' ? routeData.summary.durationText : '계산중...'}
               </div>
-              <div className="route-description">보도 이용</div>
+              <div className="route-description">대로 우선</div>
             </div>
           </button>
           
@@ -506,7 +642,7 @@ const NavigationView = ({
               <div className="route-text">
                 {routeData && selectedRouteType === 'drive' ? routeData.summary.durationText : '계산중...'}
               </div>
-              <div className="route-description">차도 이용</div>
+              <div className="route-description">대로 우선</div>
             </div>
           </button>
         </div>

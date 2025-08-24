@@ -159,7 +159,7 @@
 .route-type-button {
   flex: 1;
   max-width: 160px;
-  background: #f8f9fa;
+  background: #fff;
   border: 2px solid #e9ecef;
   border-radius: 12px;
   padding: 12px 16px;
@@ -172,15 +172,14 @@
 }
 
 .route-type-button:hover {
-  background: #f1f3f4;
   border-color: #dee2e6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .route-type-button.active {
   background: #fff;
   border-color: #2196F3;
-  color: #1976D2;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
 }
 
 .route-icon {
@@ -200,6 +199,7 @@
   font-weight: 600;
   color: #374151;
   line-height: 1.2;
+  transition: color 0.2s ease;
 }
 
 .route-text {
@@ -207,24 +207,26 @@
   font-weight: 700;
   color: #1f2937;
   line-height: 1.1;
+  transition: color 0.2s ease;
 }
 
 .route-description {
   font-size: 11px;
   color: #6b7280;
   font-weight: 500;
+  transition: color 0.2s ease;
 }
 
 .route-type-button.active .route-type-name {
-  color: #1976D2;
+  color: #2196F3;
 }
 
 .route-type-button.active .route-text {
-  color: #1976D2;
+  color: #2196F3;
 }
 
 .route-type-button.active .route-description {
-  color: #42A5F5;
+  color: #64B5F6;
 }
 
 /* 네비게이션 시작 버튼 */

@@ -1,0 +1,353 @@
+/* ========================================
+   NavigationView.css
+   경로 안내 화면 스타일
+======================================== */
+
+.navigation-view {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ========================================
+   1. HEADER
+======================================== */
+
+.navigation-header {
+  position: relative;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 3001;
+  min-height: 60px;
+}
+
+.nav-back-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+  color: #374151;
+}
+
+.nav-back-button:hover {
+  background: #f3f4f6;
+}
+
+.nav-header-info {
+  flex: 1;
+}
+
+.destination-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.destination-distance {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* ========================================
+   2. MAP SECTION
+======================================== */
+
+.navigation-map-section {
+  flex: 1;
+  position: relative;
+  background: #f8fafc;
+}
+
+.navigation-map-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+#navigation-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* 지도 로딩 상태 */
+.map-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #2196F3;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 12px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 지도 오류 상태 */
+.map-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  color: #dc2626;
+}
+
+.error-text {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 8px;
+}
+
+/* ========================================
+   3. BOTTOM CONTROLS
+======================================== */
+
+.navigation-bottom {
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 경로 타입 선택 */
+.route-type-selector {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.route-type-button {
+  flex: 1;
+  max-width: 140px;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.route-type-button:hover {
+  background: #f1f3f4;
+  border-color: #dee2e6;
+}
+
+.route-type-button.active {
+  background: #fff;
+  border-color: #2196F3;
+  color: #1976D2;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+}
+
+.route-icon {
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+
+.route-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.route-type-button.active .route-text {
+  color: #1976D2;
+}
+
+/* 네비게이션 시작 버튼 */
+.start-navigation-button {
+  width: 100%;
+  background: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.start-navigation-button:hover {
+  background: #1f2937;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.start-navigation-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.start-navigation-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ========================================
+   4. RESPONSIVE DESIGN
+======================================== */
+
+@media (max-width: 768px) {
+  .navigation-header {
+    padding: 8px 12px;
+    min-height: 56px;
+  }
+  
+  .destination-name {
+    font-size: 16px;
+  }
+  
+  .destination-distance {
+    font-size: 13px;
+  }
+  
+  .navigation-bottom {
+    padding: 12px;
+  }
+  
+  .route-type-button {
+    padding: 10px 12px;
+  }
+  
+  .route-icon {
+    font-size: 18px;
+  }
+  
+  .route-text {
+    font-size: 13px;
+  }
+  
+  .start-navigation-button {
+    padding: 14px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 380px) {
+  .navigation-header {
+    padding: 6px 8px;
+  }
+  
+  .destination-name {
+    font-size: 15px;
+  }
+  
+  .route-type-selector {
+    gap: 8px;
+  }
+  
+  .route-type-button {
+    padding: 8px 10px;
+  }
+}
+
+/* ========================================
+   5. ANIMATIONS
+======================================== */
+
+.navigation-view {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* 닫기 애니메이션 */
+.navigation-view.closing {
+  animation: slideOutToRight 0.3s ease-in forwards;
+}
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ========================================
+   6. 네이버 지도 스타일 오버라이드
+======================================== */
+
+/* 네이버 지도 로고 및 컨트롤 숨기기 */
+#navigation-map .nmap_logo_area,
+#navigation-map .nmap-control-nlogo,
+#navigation-map .nmap-control-attribution,
+#navigation-map .nmap_control_attribution,
+#navigation-map .nmap_logo,
+#navigation-map .nmap-control-logo,
+#navigation-map .nmap-attribution,
+#navigation-map .nmap-control-naver-logo {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* 지도 컨테이너 여백 제거 */
+#navigation-map > div {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 줌 컨트롤 위치 조정 */
+#navigation-map .nmap-control-zoom {
+  top: 20px !important;
+  right: 16px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}

@@ -1,0 +1,388 @@
+/* ========================================
+   ShelterDetailView.css
+   대피소 상세 화면 스타일
+======================================== */
+
+.shelter-detail-view {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ========================================
+   1. HEADER
+======================================== */
+
+.detail-header {
+  position: relative;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 2001;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.back-button:hover {
+  background: #f3f4f6;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: center;
+  position: relative;
+}
+
+.alert-badge {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.user-profile {
+  position: absolute;
+  right: 0;
+}
+
+.profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+/* ========================================
+   2. MAP SECTION
+======================================== */
+
+.detail-map-section {
+  flex: 1;
+  position: relative;
+  background: #f8fafc;
+}
+
+.detail-map-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+#detail-map {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 네이버 지도 로고 및 컨트롤 숨기기 */
+#detail-map .nmap_logo_area,
+#detail-map .nmap-control-nlogo,
+#detail-map .nmap-control-attribution,
+#detail-map .nmap_control_attribution,
+#detail-map .nmap_logo,
+#detail-map .nmap-control-logo,
+#detail-map .nmap-attribution,
+#detail-map .nmap-control-naver-logo {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* 지도 컨테이너 여백 제거 */
+#detail-map > div {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 지도 캔버스 전체 영역 활용 */
+#detail-map canvas,
+#detail-map .nmap_pane {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* 줌 컨트롤 위치 조정 (필요시) */
+#detail-map .nmap-control-zoom {
+  top: 60px !important;
+  right: 10px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.map-overlay-info {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.time-badge {
+  background: #fbbf24;
+  color: #92400e;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+
+.time-badge.warning {
+  background: #fbbf24;
+  color: #92400e;
+}
+
+.fire-risk {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #dc2626;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: fit-content;
+}
+
+.map-legend {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-color.warning {
+  background: #f59e0b;
+}
+
+.legend-color.caution {
+  background: #eab308;
+}
+
+/* ========================================
+   3. DETAIL CONTENT
+======================================== */
+
+.detail-content {
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 50vh;
+  overflow: hidden;
+}
+
+.shelter-image {
+  width: 100%;
+  height: 200px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px 16px 0 0;
+}
+
+.shelter-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-fallback {
+  display: none;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 48px;
+}
+
+.shelter-info {
+  padding: 20px 20px 16px;
+  flex: 1;
+}
+
+.shelter-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.shelter-subtitle {
+  font-size: 16px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.shelter-description {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.shelter-address {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.location-icon {
+  font-size: 16px;
+  margin-top: 1px;
+}
+
+/* ========================================
+   4. ACTIONS
+======================================== */
+
+.detail-actions {
+  padding: 16px 20px 24px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.guidance-button {
+  width: 100%;
+  background: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.guidance-button:hover {
+  background: #1f2937;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.guidance-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   5. RESPONSIVE
+======================================== */
+
+@media (max-width: 768px) {
+  .detail-header {
+    padding: 8px 12px;
+  }
+  
+  .alert-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+  .shelter-name {
+    font-size: 20px;
+  }
+  
+  .map-overlay-info {
+    top: 12px;
+    left: 12px;
+  }
+  
+  .map-legend {
+    top: 12px;
+    right: 12px;
+    padding: 8px;
+  }
+}
+
+/* ========================================
+   6. ANIMATIONS
+======================================== */
+
+.shelter-detail-view {
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* 닫기 애니메이션 */
+.shelter-detail-view.closing {
+  animation: slideOutToBottom 0.3s ease-in forwards;
+}
+
+@keyframes slideOutToBottom {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}

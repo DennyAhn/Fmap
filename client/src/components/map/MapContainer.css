@@ -1,0 +1,629 @@
+/* ========================================
+   MapContainer.css
+   지도 컨테이너 및 하단 패널 스타일
+======================================== */
+
+/* ========================================
+   1. LAYOUT & CONTAINER
+======================================== */
+
+.map-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.map-component-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+.map-component-container > div {
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: pan-x pan-y;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* ========================================
+   2. HEADER & NAVIGATION
+======================================== */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-image {
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+}
+
+.menu-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* ========================================
+   3. SEARCH & FILTERS
+======================================== */
+
+.search-bar {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  z-index: 1001;
+  background: #fff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 6px 10px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: 16px;
+  border-radius: 8px;
+  padding: 6px 8px;
+  outline: none;
+}
+
+.filter-buttons-container {
+  position: absolute;
+  top: calc(40px + max(8px, env(safe-area-inset-top)) + 6px);
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  padding: 8px 12px;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.filter-buttons-container::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-buttons-scroll {
+  display: flex;
+  gap: 6px;
+  width: max-content;
+  padding-right: 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.filter-buttons-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  margin: 0;
+  background: #fff;
+  border: 1px solid #eaeaea;
+  border-radius: 20px;
+  white-space: nowrap;
+  font-size: 13px;
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.1s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.filter-button:active {
+  transform: scale(0.98);
+}
+
+.filter-button.active {
+  border-color: #87CEFA;
+  color: #1E90FF;
+  font-weight: 600;
+}
+
+.filter-button-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 12px;
+  padding: 2px;
+}
+
+.filter-button-text {
+  font-size: 12px;
+}
+
+/* ========================================
+   4. FLOATING BUTTONS
+======================================== */
+
+.move-to-current-button {
+  position: absolute;
+  right: 16px;
+  bottom: 200px; /* 패널이 180px로 증가한 것에 맞춰 조정 */
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  background: #fff;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1002;
+  cursor: pointer;
+  transition: bottom 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 패널과 동일한 애니메이션 */
+}
+
+.move-to-current-button.panel-open {
+  bottom: calc(50vh + 20px); /* 확장된 패널(화면 절반) + 여백 */
+}
+
+.move-to-current-button.active::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 28px;
+  background: rgba(0, 123, 255, 0.18);
+  animation: pulse 1.6s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+/* ========================================
+   5. LIST PANEL (ListPanel 컴포넌트로 이동)
+======================================== */
+
+/* ========================================
+   6. CURRENT LOCATION MARKER
+======================================== */
+
+.me-pin {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+.me-pulse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(46, 204, 113, 0.25);
+  animation: mePulse 1.6s ease-out infinite;
+}
+
+.me-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #2ecc71;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+@keyframes mePulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.7;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.25);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* ========================================
+   6-1. SHELTER MARKERS
+======================================== */
+
+.shelter-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.shelter-marker-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 4px;
+}
+
+.shelter-icon-bg {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: #0d6efd;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: white;
+  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+  border: 2px solid #fff;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.shelter-marker:hover .shelter-icon-bg {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+}
+
+.shelter-marker-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(13, 110, 253, 0.2);
+  animation: shelterPulse 2s ease-out infinite;
+  z-index: 1;
+}
+
+.shelter-marker-label {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #212529;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.shelter-marker:hover .shelter-marker-label {
+  background: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  max-width: 200px;
+}
+
+@keyframes shelterPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.6;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.4);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* ========================================
+   7. BOTTOM SHEET
+======================================== */
+
+.bsheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  background: transparent;
+  z-index: 1005;
+  will-change: transform;
+  transition: transform 0.18s ease-out;
+  pointer-events: none;
+}
+
+.bsheet > * {
+  pointer-events: auto;
+}
+
+.bsheet-grabber {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(35vh + 12px);
+  display: grid;
+  place-items: center;
+  height: 24px;
+}
+
+.grabber-bar {
+  width: 42px;
+  height: 4px;
+  border-radius: 2px;
+  background: #d0d4da;
+}
+
+.bsheet-header {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(35vh);
+  padding: 0 16px 8px;
+  font-weight: 700;
+  color: #111;
+  text-shadow: 0 1px 0 #fff;
+}
+
+.bsheet-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.12);
+  min-height: 32vh;
+  max-height: 75vh;
+  overflow: auto;
+  padding: 14px 12px env(safe-area-inset-bottom);
+}
+
+.sheet-title {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 4px 0 8px 10px;
+}
+
+/* 카드 스타일 */
+.cards .section {
+  margin-bottom: 8px;
+}
+
+.cards .sec-title {
+  font-size: 12px;
+  color: #666;
+  margin: 0 10px 6px;
+}
+
+.cards .card-row {
+  display: flex;
+  gap: 10px;
+  padding: 0 10px;
+  overflow-x: auto;
+}
+
+.cards .card {
+  min-width: 220px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+}
+
+.cards .thumb {
+  height: 90px;
+  border-radius: 8px;
+  background: #e9eef6;
+  margin-bottom: 8px;
+}
+
+.cards .card-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.cards .meta {
+  font-size: 12px;
+  color: #606b7b;
+}
+
+.cards .cta {
+  width: calc(100% - 20px);
+  margin: 10px auto 6px;
+  display: block;
+  height: 52px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: #222;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* ========================================
+   8. RESPONSIVE DESIGN
+======================================== */
+
+@media (max-width: 768px) {
+  .search-bar {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    height: 38px;
+  }
+  
+  .filter-buttons-container {
+    top: calc(38px + max(8px, env(safe-area-inset-top)) + 8px);
+    padding: 0 12px;
+  }
+  
+  .filter-button {
+    padding: 6px 10px;
+    font-size: 13px;
+    border-width: 2px;
+  }
+  
+  .filter-button.active {
+    border-color: #87CEFA;
+    color: #1E90FF;
+    font-weight: 700;
+  }
+}
+
+@media (max-width: 380px) {
+  .search-bar {
+    left: 8px;
+    right: 8px;
+    height: 36px;
+  }
+  
+  .filter-buttons-container {
+    top: calc(36px + max(8px, env(safe-area-inset-top)) + 10px);
+    padding: 8px 12px;
+  }
+}
+
+/* ========================================
+   9. PLATFORM SPECIFIC
+======================================== */
+
+/* iOS Safari safe-area */
+@supports (-webkit-touch-callout: none) {
+  .map-container,
+  .map-component-container {
+    height: -webkit-fill-available;
+  }
+  
+  .map-component-container > div {
+    height: -webkit-fill-available !important;
+  }
+}
+
+/* Reduced motion (접근성) */
+@media (prefers-reduced-motion: reduce) {
+  .move-to-current-button.active::before {
+    animation: none;
+  }
+  
+  .filter-button,
+  .list-item-route-button {
+    transition: none;
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .header,
+  .search-bar,
+  .list-panel {
+    background: #161618;
+    color: #f3f3f4;
+  }
+  
+  .filter-button {
+    background: #1e1e21;
+    border-color: #2a2a2e;
+    color: #f3f3f4;
+  }
+  
+  .filter-button.active {
+    color: #5aa9ff;
+    border-color: #345a8a;
+  }
+  
+  .list-item {
+    border-color: #2a2a2e;
+  }
+  
+  .list-item-title {
+    color: #f3f3f4;
+  }
+  
+  .list-item-address {
+    color: #b7b7ba;
+  }
+  
+  .search-input {
+    color: #f3f3f4;
+  }
+}
+
+/* ========================================
+   10. WEBVIEW MODE
+======================================== */
+
+.map-container.webview .header,
+.map-container.webview .search-bar,
+.map-container.webview .filter-buttons-container,
+.map-container.webview .list-panel {
+  display: none !important;
+}
+
+.map-container.webview .map-component-container {
+  inset: 0 !important;
+}

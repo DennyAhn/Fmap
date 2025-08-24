@@ -32,7 +32,7 @@ router.post('/walk', async (req, res) => {
     }
 
     // 티맵 도보 경로 API 호출
-    const tmapResponse = await fetch(`${TMAP_BASE_URL}/tmap/routes/pedestrian`, {
+    const tmapResponse = await fetch(`${TMAP_BASE_URL}/tmap/routes/pedestrian?version=1&format=json`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -107,7 +107,7 @@ router.post('/drive', async (req, res) => {
     }
 
     // 티맵 자동차 경로 API 호출
-    const tmapResponse = await fetch(`${TMAP_BASE_URL}/tmap/routes`, {
+    const tmapResponse = await fetch(`${TMAP_BASE_URL}/tmap/routes?version=1&format=json`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
